@@ -1,5 +1,6 @@
 {
-  "generatedAt": "2026-10-23 13:37:08",
+  "generatedAt": "2026-10-23 13:24:51",
+  "dataSnapshot": "2026-10-23T13:24:51",
   "account": {
     "availablePoint": 1025.0,
     "accumulativePoint": 2167.9,
@@ -10,17 +11,21 @@
     "currency": "麦享会积分"
   },
   "valuation": {
-    "medianRate": 5.45,
-    "availableValue": 55.86,
-    "expiredValue": 60.6,
-    "currentMouthExpireValue": 0.41,
+    "medianRate": 3.12,
+    "medianRateBasis": "net",
+    "availableValue": 31.98,
+    "expiredValue": 34.69,
+    "expiredValueRealizable": 0.0,
+    "expiredValueLabel": "本可值（机会成本）",
+    "currentMouthExpireValue": 0.23,
     "wasteRatio": 51.3,
     "mallDeadRatio": 69.6
   },
   "market": {
     "total": 23,
     "valid": 7,
-    "expired": 16
+    "expired": 16,
+    "blocked": 0
   },
   "ranking": [
     {
@@ -28,86 +33,145 @@
       "name": "6.9元可乐麦炫酷",
       "point": 50,
       "pay": 6.9,
-      "rate": 13.8,
+      "value": 13.0,
       "original": 13.0,
+      "net": 6.1,
+      "rate": 26.0,
       "net_rate": 12.2,
+      "score": 12.2,
+      "score_basis": "net",
+      "original_missing": [],
+      "original_source": "menu",
+      "matched_key": "可乐麦炫酷",
       "catName": "到店专用",
+      "status": 2,
       "downTime": "2026-12-30 23:59:59",
       "image": "https://img.mcd.cn/ecs/affec854b9474fa2.jpg"
-    },
-    {
-      "spuId": 17074,
-      "name": "6.9元香芋派/菠萝派任选",
-      "point": 50,
-      "pay": 6.9,
-      "rate": 13.8,
-      "original": 8.5,
-      "net_rate": 3.2,
-      "catName": "到店专用",
-      "downTime": "2026-12-30 23:59:59",
-      "image": "https://img.mcd.cn/ecs/c8e3a03b35f73ede.jpg"
     },
     {
       "spuId": 17076,
       "name": "10.9元指定小食任选",
       "point": 100,
       "pay": 10.9,
-      "rate": 10.9,
+      "value": 10.9,
       "original": null,
+      "net": null,
+      "rate": 10.9,
       "net_rate": null,
+      "score": 10.9,
+      "score_basis": "gross",
+      "original_missing": [],
+      "original_source": null,
+      "matched_key": null,
       "catName": "到店专用",
+      "status": 2,
       "downTime": "2026-12-30 23:59:59",
-      "image": "https://img.mcd.cn/ecs/acd57835928c0f6f.jpg"
+      "image": "https://img.mcd.cn/ecs/acd57835928c0f6f.jpg",
+      "dup": "同名券 2 档（100/200），按积分从低到高选"
     },
     {
       "spuId": 17077,
       "name": "10.9元指定小食任选",
       "point": 200,
       "pay": 10.9,
-      "rate": 5.45,
+      "value": 10.9,
       "original": null,
+      "net": null,
+      "rate": 5.45,
       "net_rate": null,
+      "score": 5.45,
+      "score_basis": "gross",
+      "original_missing": [],
+      "original_source": null,
+      "matched_key": null,
       "catName": "到店专用",
+      "status": 2,
       "downTime": "2026-12-30 23:59:59",
-      "image": "https://img.mcd.cn/ecs/72a21fa0f800c4d7.jpg"
+      "image": "https://img.mcd.cn/ecs/72a21fa0f800c4d7.jpg",
+      "dup": "同名券 2 档（100/200），按积分从低到高选"
     },
     {
-      "spuId": 17080,
-      "name": "17.9元板烧可乐组合",
-      "point": 500,
-      "pay": 17.9,
-      "rate": 3.58,
-      "original": 33.5,
-      "net_rate": 3.12,
+      "spuId": 17074,
+      "name": "6.9元香芋派/菠萝派任选",
+      "point": 50,
+      "pay": 6.9,
+      "value": 8.5,
+      "original": 8.5,
+      "net": 1.6,
+      "rate": 17.0,
+      "net_rate": 3.2,
+      "score": 3.2,
+      "score_basis": "net",
+      "original_missing": [],
+      "original_source": "menu",
+      "matched_key": "香芋派/菠萝派",
       "catName": "到店专用",
+      "status": 2,
       "downTime": "2026-12-30 23:59:59",
-      "image": "https://img.mcd.cn/ecs/08b655d1f4d3d639.jpg"
+      "image": "https://img.mcd.cn/ecs/c8e3a03b35f73ede.jpg"
     },
     {
       "spuId": 17079,
       "name": "16.9元麦辣可乐组合",
       "point": 500,
       "pay": 16.9,
-      "rate": 3.38,
+      "value": 32.5,
       "original": 32.5,
+      "net": 15.6,
+      "rate": 6.5,
       "net_rate": 3.12,
+      "score": 3.12,
+      "score_basis": "net",
+      "original_missing": [],
+      "original_source": "menu",
+      "matched_key": "麦辣可乐组合",
       "catName": "到店专用",
+      "status": 2,
       "downTime": "2026-12-30 23:59:59",
       "image": "https://img.mcd.cn/ecs/20c9867018af833a.jpg"
+    },
+    {
+      "spuId": 17080,
+      "name": "17.9元板烧可乐组合",
+      "point": 500,
+      "pay": 17.9,
+      "value": 33.5,
+      "original": 33.5,
+      "net": 15.6,
+      "rate": 6.7,
+      "net_rate": 3.12,
+      "score": 3.12,
+      "score_basis": "net",
+      "original_missing": [],
+      "original_source": "menu",
+      "matched_key": "板烧可乐组合",
+      "catName": "到店专用",
+      "status": 2,
+      "downTime": "2026-12-30 23:59:59",
+      "image": "https://img.mcd.cn/ecs/08b655d1f4d3d639.jpg"
     },
     {
       "spuId": 17081,
       "name": "21.9元巨无霸可乐组合",
       "point": 800,
       "pay": 21.9,
-      "rate": 2.74,
+      "value": 36.0,
       "original": 36.0,
+      "net": 14.1,
+      "rate": 4.5,
       "net_rate": 1.76,
+      "score": 1.76,
+      "score_basis": "net",
+      "original_missing": [],
+      "original_source": "menu",
+      "matched_key": "巨无霸可乐组合",
       "catName": "到店专用",
+      "status": 2,
       "downTime": "2026-12-30 23:59:59",
       "image": "https://img.mcd.cn/ecs/bd4382429dc7c39c.jpg"
     }
   ],
+  "comboMapOverrides": 0,
   "expiredProducts": [
     {
       "name": "为随心配五大巨星“应援”1积分兑换活动",
@@ -190,55 +254,72 @@
       "downTime": "2026-06-05 16:00:00"
     }
   ],
+  "blockedProducts": [],
   "plan": {
     "budget": 1025,
+    "objective": "net",
     "plan": [
       {
-        "name": "6.9元可乐麦炫酷",
-        "point": 50,
-        "pay": 6.9,
-        "rate": 13.8,
-        "spuId": 17073
-      },
-      {
-        "name": "6.9元香芋派/菠萝派任选",
-        "point": 50,
-        "pay": 6.9,
-        "rate": 13.8,
-        "spuId": 17074
-      },
-      {
-        "name": "10.9元指定小食任选",
-        "point": 100,
-        "pay": 10.9,
-        "rate": 10.9,
-        "spuId": 17076
-      },
-      {
-        "name": "10.9元指定小食任选",
-        "point": 200,
-        "pay": 10.9,
-        "rate": 5.45,
-        "spuId": 17077
+        "name": "16.9元麦辣可乐组合",
+        "point": 500,
+        "pay": 16.9,
+        "value": 32.5,
+        "net": 15.6,
+        "rate": 6.5,
+        "net_rate": 3.12,
+        "score": 3.12,
+        "spuId": 17079
       },
       {
         "name": "17.9元板烧可乐组合",
         "point": 500,
         "pay": 17.9,
-        "rate": 3.58,
+        "value": 33.5,
+        "net": 15.6,
+        "rate": 6.7,
+        "net_rate": 3.12,
+        "score": 3.12,
         "spuId": 17080
       }
     ],
-    "spent": 900,
-    "value": 53.5,
-    "remain": 125,
-    "planRate": 5.94,
+    "spent": 1000,
+    "value": 31.2,
+    "gross": 66.0,
+    "cash": 34.8,
+    "remain": 25,
+    "planRate": 3.12,
     "naive": {
+      "kind": "greedy",
+      "name": "按净省率贪心装",
+      "spent": 600,
+      "value": 23.3,
+      "remain": 425,
+      "items": [
+        "6.9元可乐麦炫酷",
+        "6.9元香芋派/菠萝派任选",
+        "16.9元麦辣可乐组合"
+      ]
+    },
+    "naiveMaxPoint": {
+      "kind": "maxpoint",
       "name": "21.9元巨无霸可乐组合",
       "spent": 800,
-      "value": 21.9,
+      "value": 14.1,
       "remain": 225
     },
-    "gainRatio": 2.44
+    "gainRatio": 1.34,
+    "gainRatioMaxPoint": 2.21,
+    "excluded": [
+      {
+        "name": "10.9元指定小食任选",
+        "point": 100,
+        "reason": "门店原价未匹配，不猜 · 可在 data/combo_map.json 手工补"
+      },
+      {
+        "name": "10.9元指定小食任选",
+        "point": 200,
+        "reason": "门店原价未匹配，不猜 · 可在 data/combo_map.json 手工补"
+      }
+    ]
   }
 }
