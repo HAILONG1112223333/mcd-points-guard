@@ -4,7 +4,7 @@
 拿到 PAT 后，一条命令完成全部 GitHub 操作 —— 全程走 API，不打开任何网页。
 
 用法:
-    python github_setup.py <你的GitHub用户名> ghp_xxxxxxxxxxxx
+    python github_setup.py <你的GitHub用户名> ${GITHUB_PAT}
 
 会依次做：
     1. 创建 PUBLIC 仓库 mcd-points-guard
