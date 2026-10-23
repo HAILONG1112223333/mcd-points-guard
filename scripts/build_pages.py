@@ -3,8 +3,12 @@
 """
 生成在线试玩页 index.html —— 纯静态、零依赖、可交互。
 
-路人打开就能玩：输入自己的积分数，立刻看到「怎么换最值」。
-这是 GitHub Pages 的入口，也是拉 Star 的第一触点。
+口径（v2，已修正）：
+    净省 = 门店原价 − 兑换时支付的现金
+    净省率 = 净省 ÷ 所需积分 × 100   ← 真正的「每100积分省多少钱」
+    DP 目标 = 最大化 Σ 净省
+
+⚠️ v1 曾用 pay/point 当「汇率」，那是付现率（要掏多少现金），不是收益，已废弃。
 
 用法: python scripts/build_pages.py   →   index.html
 """
@@ -12,8 +16,27 @@
 import json, os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.path.join(ROOT, "data", "sample", "audit_result.json")
 OUT = os.path.join(ROOT, "index.html")
+
+# 已核实净省（原价来自 query-meals 门店实价，非估算）
+ITEMS = [
+    {"name": "6.9元可乐麦炫酷",       "point": 50,  "pay": 6.9,  "net": 6.1,  "orig": 13.0},
+    {"name": "6.9元香芋派/菠萝派任选", "point": 50,  "pay": 6.9,  "net": 1.6,  "orig": 8.5},
+    {"name": "16.9元麦辣可乐组合",     "point": 500, "pay": 16.9, "net": 15.6, "orig": 32.5},
+    {"name": "17.9元板烧可乐组合",     "point": 500, "pay": 17.9, "net": 15.6, "orig": 33.5},
+    {"name": "21.9元巨无霸可乐组合",   "point": 800, "pay": 21.9, "net": 14.1, "orig": 36.0},
+]
+
+# 原价未能从菜单匹配，不参与优化（接口未给原价，不猜测）
+UNKNOWN = [
+    {"name": "10.9元指定小食任选", "point": 100, "pay": 10.9},
+    {"name": "10.9元指定小食任选", "point": 200, "pay": 10.9},
+]
+
+ACCOUNT = {"available": 1025.0, "expired": 1111.9, "accum": 2167.9, "month": 7.5,
+           "rate": 3.12, "availValue": 31.98, "expiredValue": 34.69, "waste": 51.3}
+MARKET = {"total": 23, "valid": 7, "expired": 16, "deadPct": 70}
+REPO = "https://github.com/HAILONG1112223333/mcd-points-guard"
 
 TEMPLATE = """<!DOCTYPE html>
 <html lang="zh-CN">
@@ -21,7 +44,7 @@ TEMPLATE = """<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>麦麦积分止损官 · 你的麦当劳积分正在过期</title>
-<meta name="description" content="算出你的麦当劳积分有多少正在过期、每100积分值多少钱、怎样刚好花完不浪费。基于麦当劳官方 MCP 实时数据。">
+<meta name="description" content="算出你的麦当劳积分有多少正在过期、每100积分真金白银省多少钱、怎样刚好花完不浪费。基于麦当劳官方 MCP 实时数据。">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:#1d1d1f;line-height:1.6}
@@ -29,9 +52,9 @@ body{background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,"PingFang S
 .hero{background:linear-gradient(135deg,#ffc72c,#ff9f0a);padding:38px 28px 32px;color:#3a2500;text-align:center}
 .hero h1{font-size:26px;font-weight:800;margin-bottom:8px}
 .hero p{font-size:14px;opacity:.8}
-.hero .nums{display:flex;justify-content:center;gap:26px;margin-top:22px;flex-wrap:wrap}
-.hero .n{font-size:24px;font-weight:800}
-.hero .l{font-size:11px;opacity:.75}
+.hero .nums{display:flex;justify-content:center;gap:22px;margin-top:22px;flex-wrap:wrap}
+.hero .n{font-size:23px;font-weight:800}
+.hero .l{font-size:11px;opacity:.75;margin-top:2px}
 .card{background:#fff;border-radius:18px;box-shadow:0 4px 24px rgba(0,0,0,.07);padding:24px;margin-top:20px}
 .card h2{font-size:17px;font-weight:800;margin-bottom:4px}
 .card .sub{font-size:12px;color:#86868b;margin-bottom:18px}
@@ -45,6 +68,7 @@ body{background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,"PingFang S
 .alert b{color:#d70015;font-size:15px}
 .alert.amber{background:#fffaf0;border-left-color:#ff9f0a;color:#5a3a00}
 .alert.amber b{color:#c2410c}
+.alert.gray{background:#f5f5f7;border-left-color:#86868b;color:#515154}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;font-size:11px;color:#86868b;padding:8px 4px;border-bottom:1px solid #e5e5ea;font-weight:600}
 td{padding:9px 4px;border-bottom:1px solid #f0f0f2}
@@ -52,7 +76,7 @@ td{padding:9px 4px;border-bottom:1px solid #f0f0f2}
 .tag{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:700;margin-left:4px}
 .tag.hot{background:#fff0e0;color:#c2410c}.tag.bad{background:#f0f0f2;color:#86868b}
 .calc{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.calc input{flex:1;min-width:160px;font-size:17px;font-weight:700;padding:12px 14px;border:2px solid #d2d2d7;border-radius:12px;outline:none}
+.calc input{flex:1;min-width:150px;font-size:17px;font-weight:700;padding:12px 14px;border:2px solid #d2d2d7;border-radius:12px;outline:none}
 .calc input:focus{border-color:#ff9f0a}
 .calc button{background:#da291c;color:#fff;border:0;border-radius:12px;padding:13px 22px;font-size:15px;font-weight:800;cursor:pointer}
 .calc button:hover{background:#b81f14}
@@ -62,7 +86,7 @@ td{padding:9px 4px;border-bottom:1px solid #f0f0f2}
 .vs{display:flex;gap:12px;margin-top:14px}
 .vs>div{flex:1;border-radius:12px;padding:14px;text-align:center}
 .good{background:#eaf7ee}.bad{background:#eeeeef}
-.vs .t{font-size:11px;color:#86868b}.vs .m{font-size:23px;font-weight:800;margin:5px 0}
+.vs .t{font-size:11px;color:#86868b}.vs .m{font-size:22px;font-weight:800;margin:5px 0}
 .good .m{color:#007a33}.bad .m{color:#86868b}
 .gain{text-align:center;font-size:15px;font-weight:800;color:#d70015;margin-top:12px}
 pre{background:#1d1d1f;color:#e8e8ed;border-radius:10px;padding:14px;font-size:12px;overflow-x:auto;line-height:1.5}
@@ -78,8 +102,8 @@ pre{background:#1d1d1f;color:#e8e8ed;border-radius:10px;padding:14px;font-size:1
   <p>你的麦当劳积分，正在悄悄过期</p>
   <div class="nums">
     <div><div class="n">51.3%</div><div class="l">积分已蒸发</div></div>
-    <div><div class="n">70%</div><div class="l">商城商品换不了</div></div>
-    <div><div class="n">2.44×</div><div class="l">会换 vs 不会换</div></div>
+    <div><div class="n">¥0</div><div class="l">过期积分可变现</div></div>
+    <div><div class="n">2.21×</div><div class="l">凑单 vs 全押</div></div>
   </div>
 </div>
 
@@ -89,30 +113,30 @@ pre{background:#1d1d1f;color:#e8e8ed;border-radius:10px;padding:14px;font-size:1
     <h2>实测体检（真实麦当劳账户）</h2>
     <div class="sub">数据来自麦当劳官方 MCP 接口，2026-10-23</div>
     <div class="grid4">
-      <div class="cell"><div class="v green">__AVAIL__</div><div class="k">可用积分</div><div class="m">≈ ¥__AVAILV__</div></div>
-      <div class="cell"><div class="v red">__EXPIRED__</div><div class="k">已过期</div><div class="m">≈ ¥__EXPIREDV__</div></div>
-      <div class="cell"><div class="v">__ACCUM__</div><div class="k">累计获得</div></div>
-      <div class="cell"><div class="v">__MONTH__</div><div class="k">本月将过期</div></div>
+      <div class="cell"><div class="v green">1025.0</div><div class="k">可用积分</div><div class="m">≈ 省 ¥31.98</div></div>
+      <div class="cell"><div class="v red">1111.9</div><div class="k">已过期</div><div class="m">本可省 ¥34.69</div></div>
+      <div class="cell"><div class="v">2167.9</div><div class="k">累计获得</div></div>
+      <div class="cell"><div class="v">7.5</div><div class="k">本月将过期</div></div>
     </div>
-    <div class="alert">累计获得的积分里，有 <b>__WASTE__%</b> 已经蒸发掉了 —— 相当于白丢了 <b>¥__EXPIREDV__</b>。</div>
-    <div class="alert amber">积分商城列表共 <b>__TOTAL__</b> 个商品，其中 <b>__DEAD__</b> 个其实已过期换不了（__DEADPCT__%），真正能换的只有 <b>__VALID__</b> 个。</div>
+    <div class="alert">累计获得的积分里，有 <b>51.3%</b> 已经蒸发。那 1111.9 分<b>本可省下 ¥34.69</b>，现在已经归零，可变现 <b>¥0</b>。</div>
+    <div class="alert amber">积分商城列表共 <b>23</b> 个商品，其中 <b>16</b> 个其实已过期换不了（70%），真正能换的只有 <b>7</b> 个。</div>
   </div>
 
   <div class="card">
-    <h2>积分汇率榜 · 每 100 积分值多少元</h2>
-    <div class="sub">汇率 = 兑换价 ÷ 所需积分 × 100，越高越划算</div>
+    <h2>净省榜 · 每 100 积分真金白银省多少</h2>
+    <div class="sub">净省 = 门店原价 − 兑换时支付的现金；净省率越高越划算</div>
     <table>
-      <tr><th style="width:42%">商品</th><th>积分</th><th>兑换价</th><th style="width:26%">汇率</th></tr>
+      <tr><th style="width:34%">商品</th><th>积分</th><th>付现</th><th>净省</th><th style="width:20%">净省率</th></tr>
       __ROWS__
     </table>
-    <div class="alert amber">小面额兑换远优于大面额：50 分的商品汇率是 800 分的 <b>5 倍</b>。攒着换大的，恰恰最亏。<br>还有个坑：列表里有两个同名「10.9元指定小食任选」，一个 100 分一个 200 分，不比对积分根本看不出。</div>
+    <div class="alert gray"><b>关于口径：</b>「6.9元」「21.9元」这类名字里的金额，是兑换时<b>还要掏的现金</b>，不是你换到的价值。真正衡量划不划算的是「净省」——原价减去付现。这也是本项目第一版踩过的坑。</div>
   </div>
 
   <div class="card">
-    <h2>试算：你的积分怎么换最值</h2>
-    <div class="sub">输入积分数，用动态规划算出预算内总价值最高的组合</div>
+    <h2>试算：你的积分怎么换最省</h2>
+    <div class="sub">输入积分数，用背包 DP 算出预算内净省最大的组合</div>
     <div class="calc">
-      <input type="number" id="pts" value="__AVAIL__" min="0" max="10000" step="1">
+      <input type="number" id="pts" value="1025" min="0" max="10000" step="1">
       <button onclick="run()">算一下</button>
     </div>
     <div class="res" id="out"></div>
@@ -140,67 +164,88 @@ pre{background:#1d1d1f;color:#e8e8ed;border-radius:10px;padding:14px;font-size:1
   <div class="ft">
     本工具为麦当劳程序员创意开发大赛（M-CODE）参赛作品，由参赛者独立开发，<b>非麦当劳官方产品</b>。<br>
     积分、价格、商品有效期均来自麦当劳官方 MCP 实时接口，仅供参考，请以麦当劳官方渠道结果为准。<br>
-    汇率 = 兑换价 ÷ 所需积分 × 100；试算结果按每种商品最多 5 件估算，实际可兑换次数以麦当劳规则为准。
+    净省 = 门店原价 − 兑换付现；原价取自 <code>query-meals</code> 门店实价，匹配不到的一律留空不参与推荐，不做估算。<br>
+    试算按每种券限兑 1 次（积分商城常见规则）；若你的账号可重复兑换，请以麦当劳规则为准。
   </div>
 </div>
 
 <script>
 var ITEMS = __DATA__;
-var COPIES = 5, CAP = 10000;
+var COPIES = 1, CAP = 10000;  /* 积分商城券通常每种限兑 1 次 */
 
-function fmt(n){ return (Math.round(n*100)/100).toFixed(1); }
+function fmt(n){ return (Math.round(n*100)/100).toFixed(2); }
 
-function run(){
-  var budget = parseInt(document.getElementById('pts').value, 10);
-  if(isNaN(budget) || budget < 0){ budget = 0; }
-  if(budget > CAP){ budget = CAP; }
-
-  var all = [];
-  for(var i=0;i<ITEMS.length;i++){
-    for(var c=0;c<COPIES;c++){ all.push(ITEMS[i]); }
-  }
-
+function knap(budget, pool){
   var dp = new Float64Array(budget+1);
   var pick = new Array(budget+1);
-  for(var b=0;b<=budget;b++){ pick[b] = []; }
-
-  for(var k=0;k<all.length;k++){
-    var it = all[k];
-    for(var b=budget;b>=it.point;b--){
-      var cand = dp[b-it.point] + it.pay;
+  var b;
+  for(b=0;b<=budget;b++){ pick[b]=[]; }
+  for(var k=0;k<pool.length;k++){
+    var it = pool[k];
+    for(b=budget;b>=it.point;b--){
+      var cand = dp[b-it.point] + it.net;
       if(cand > dp[b] + 1e-9){
         dp[b] = cand;
         pick[b] = pick[b-it.point].concat([it]);
       }
     }
   }
+  var best=0;
+  for(b=1;b<=budget;b++){ if(dp[b] > dp[best] + 1e-9){ best=b; } }
+  return {value:dp[best], spent:best, items:pick[best]};
+}
 
-  var best = 0;
-  for(var b=1;b<=budget;b++){ if(dp[b] > dp[best] + 1e-9){ best = b; } }
-  var chosen = pick[best];
-  var spent = 0;
-  for(var j=0;j<chosen.length;j++){ spent += chosen[j].point; }
+function greedy(budget){
+  var sorted = ITEMS.slice().sort(function(a,b){ return b.net/b.point - a.net/a.point; });
+  var left = budget, net = 0, got = [];
+  for(var i=0;i<sorted.length;i++){
+    for(var c=0;c<COPIES;c++){
+      if(sorted[i].point <= left){ left -= sorted[i].point; net += sorted[i].net; got.push(sorted[i]); }
+      else break;
+    }
+  }
+  return {value:net, spent:budget-left, items:got};
+}
 
-  var naive = null;
+function run(){
+  var budget = parseInt(document.getElementById('pts').value,10);
+  if(isNaN(budget)||budget<0){budget=0;}
+  if(budget>CAP){budget=CAP;}
+
+  var pool = [];
+  for(var i=0;i<ITEMS.length;i++){ for(var c=0;c<COPIES;c++){ pool.push(ITEMS[i]); } }
+
+  var best = knap(budget, pool);
+  var g = greedy(budget);
+
+  var naive=null;
   for(var i=0;i<ITEMS.length;i++){
-    if(ITEMS[i].point <= budget && (!naive || ITEMS[i].point > naive.point)){ naive = ITEMS[i]; }
+    var cand = null, times = 0;
+    for(var t=COPIES;t>=1;t--){
+      if(ITEMS[i].point*t <= budget){ cand = {net:ITEMS[i].net*t, point:ITEMS[i].point*t, name:ITEMS[i].name}; times=t; break; }
+    }
+    if(cand && (!naive || cand.net > naive.net)){ naive = cand; }
   }
 
   var h = '';
-  if(chosen.length === 0){
+  if(best.items.length === 0){
     h = '<div class="row"><span>这点积分还换不了任何东西</span><span>再攒攒</span></div>';
   } else {
-    h += '<div class="row" style="color:#86868b;font-size:12px"><span>最优组合</span><span>汇率排序</span></div>';
-    for(var j=0;j<chosen.length;j++){
-      h += '<div class="row"><span>' + chosen[j].name + '</span><span>' + chosen[j].point + ' 分 · ¥' + fmt(chosen[j].pay) + '</span></div>';
+    h += '<div class="row" style="color:#86868b;font-size:12px"><span>最优组合（净省最大化）</span><span>净省</span></div>';
+    for(var j=0;j<best.items.length;j++){
+      h += '<div class="row"><span>' + best.items[j].name + '</span><span>' + best.items[j].point + ' 分 · 省 ¥' + fmt(best.items[j].net) + '</span></div>';
     }
-    h += '<div class="row tot"><span>合计</span><span>' + spent + ' 分 → ¥' + fmt(dp[best]) + '（剩 ' + (budget-spent) + ' 分）</span></div>';
-    if(naive && dp[best] > naive.pay + 1e-9){
+    h += '<div class="row tot"><span>合计</span><span>' + best.spent + ' 分 → 净省 ¥' + fmt(best.value) + '（剩 ' + (budget-best.spent) + ' 分）</span></div>';
+
+    if(best.value > g.value + 1e-9){
       h += '<div class="vs">'
-         + '<div class="good"><div class="t">会换</div><div class="m">¥' + fmt(dp[best]) + '</div><div class="t">' + spent + ' 分换出一桌</div></div>'
-         + '<div class="bad"><div class="t">不会换（全押最大额）</div><div class="m">¥' + fmt(naive.pay) + '</div><div class="t">剩 ' + (budget-naive.point) + ' 分用不掉</div></div>'
+         + '<div class="good"><div class="t">背包 DP 凑单</div><div class="m">省 ¥' + fmt(best.value) + '</div><div class="t">' + best.spent + ' 分</div></div>'
+         + '<div class="bad"><div class="t">按性价比贪心买</div><div class="m">省 ¥' + fmt(g.value) + '</div><div class="t">' + g.spent + ' 分</div></div>'
          + '</div>'
-         + '<div class="gain">同样的积分，差 ' + (dp[best]/naive.pay).toFixed(2) + ' 倍</div>';
+         + '<div class="gain">按性价比一个个买，反而少省 ¥' + fmt(best.value-g.value) + '（差 ' + (best.value/g.value).toFixed(2) + ' 倍）</div>';
+    }
+    if(naive && best.value > naive.net + 1e-9){
+      h += '<div class="row" style="margin-top:12px;color:#86868b;font-size:12.5px"><span>对照：全押最大额（' + naive.name + ' ×' + (naive.point/ITEMS[ITEMS.length-1].point) + '）</span><span>省 ¥' + fmt(naive.net) + '</span></div>';
     }
   }
   document.getElementById('out').innerHTML = h;
@@ -214,45 +259,26 @@ run();
 
 
 def main():
-    with open(SRC, encoding="utf-8") as f:
-        r = json.load(f)
-
-    a, v, m = r["account"], r["valuation"], r["market"]
-
-    items = [{"name": x["name"], "point": x["point"], "pay": x["pay"], "rate": x["rate"]}
-             for x in r["ranking"] if x.get("pay") is not None]
-
-    rates = [i["rate"] for i in items if i["rate"]]
-    mx = max(rates) if rates else 1
+    ranked = sorted(ITEMS, key=lambda x: -(x["net"] / x["point"] * 100))
+    mx = max(i["net"] / i["point"] * 100 for i in ranked)
     rows = []
-    for i in items:
-        tag = ('<span class="tag hot">血赚</span>' if i["rate"] >= 10
-               else ('<span class="tag bad">血亏</span>' if i["rate"] < 4 else ''))
-        rows.append(
-            '<tr><td>%s%s</td><td>%d</td><td>¥%s</td>'
-            '<td><span class="bar" style="width:%.0fpx"></span> <b>%.2f</b></td></tr>'
-            % (i["name"], tag, i["point"], i["pay"], max(i["rate"] / mx * 80, 8), i["rate"]))
+    for i in ranked:
+        r = i["net"] / i["point"] * 100
+        tag = ('<span class="tag hot">血赚</span>' if r >= 10
+               else ('<span class="tag bad">偏低</span>' if r < 2 else ''))
+        rows.append('<tr><td>%s%s</td><td>%d</td><td>¥%.1f</td><td><b>¥%.1f</b></td>'
+                    '<td><span class="bar" style="width:%.0fpx"></span> <b>%.2f</b></td></tr>'
+                    % (i["name"], tag, i["point"], i["pay"], i["net"], max(r / mx * 70, 8), r))
     rows = "\n      ".join(rows)
 
     page = (TEMPLATE
-            .replace("__DATA__", json.dumps(items, ensure_ascii=False))
+            .replace("__DATA__", json.dumps(ITEMS, ensure_ascii=False))
             .replace("__ROWS__", rows)
-            .replace("__AVAIL__", str(a["availablePoint"]))
-            .replace("__AVAILV__", str(v["availableValue"]))
-            .replace("__EXPIRED__", str(a["expiredPoint"]))
-            .replace("__EXPIREDV__", str(v["expiredValue"]))
-            .replace("__ACCUM__", str(a["accumulativePoint"]))
-            .replace("__MONTH__", str(a["currentMouthExpirePoint"]))
-            .replace("__WASTE__", str(v["wasteRatio"]))
-            .replace("__TOTAL__", str(m["total"]))
-            .replace("__DEAD__", str(m["expired"]))
-            .replace("__DEADPCT__", str(int(v["mallDeadRatio"])))
-            .replace("__VALID__", str(m["valid"]))
-            .replace("__REPO__", "https://github.com/HAILONG1112223333/mcd-points-guard"))
+            .replace("__REPO__", REPO))
 
     with open(OUT, "w", encoding="utf-8") as f:
         f.write(page)
-    print("试玩页已生成 → %s (%d 字节, %d 个商品)" % (OUT, len(page), len(items)))
+    print("试玩页已生成 → %s (%d 字节)" % (OUT, len(page)))
 
 
 if __name__ == "__main__":
